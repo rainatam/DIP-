@@ -4,8 +4,9 @@ from PIL import Image
 import numpy as np
 import tensorflow as tf
 import os
-# from alexnet import AlexNet
-import AlexNet
+# import alexnet
+from alexnet import *
+# import AlexNet
 # import glob
 # import matplotlib.pyplot as plt
 
@@ -53,12 +54,12 @@ with tf.Session() as sess:
     X_train = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
     X_test = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
 
-    alexnet = AlexNet(X_train, DROP_PROB, CLASSES, [])
+    embedding = AlexNet(X_train, DROP_PROB, CLASSES, [])
 
     y_train = tf.placeholder(tf.int64, [None])
     y_one_hot = tf.one_hot(y, depth = CLASSES)
 
-    X_emb = alexnet.fc7
+    X_emb = embedding.fc7
 
 
 
