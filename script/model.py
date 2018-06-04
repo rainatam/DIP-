@@ -19,47 +19,44 @@ CLASSES  = 50
 # QUERY = 
 # SAMPLE = 
 
-DATA_DIR = "../training"
+def gen_batch(base, pos, neg, data):
 
-train_image = []
-train_label = []
-
-def load_image(path):
-    VGG_MEAN = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32)
-    # load and preprocess the image
-    img_string = tf.read_file(path)
-    img_decoded = tf.image.decode_png(img_string, channels=3)
-    img_resized = tf.image.resize_images(img_decoded, [227, 227])
-    img_centered = tf.subtract(img_resized, VGG_MEAN)
-    img_bgr = img_centered[:, :, ::-1]
-    return img_bgr.eval()
-
-def load_data(path):  
-    for file in os.listdir(path):  
-        tmp_path = os.path.join(path, file)  
-        if not os.path.isdir(tmp_path):  
-            string = re.match(r'.*0([0-9]+)_0*([0-9]+)\.jpg', file)
-            train_image.append(load_image(tmp_path))
-            train_label.append(string.group(1))
-        else:  
-            load_data(tmp_path) 
+    return x_base, x_pos, x_neg
 
 with tf.Session() as sess:
-    load_data(DATA_DIR)
-    train_image = np.array(train_image)
-    train_label = np.array(train_label)
-    _, HEIGHT, WIDTH, CHANNEL = train_image.shape
+    learning_rate = 0.01
 
+    train_image = np.load('train_image.npy')
+    base = np.load('base.npy')
+    pos = np.load('pos.npy')
+    neg = np.load('neg.npy')
 
-    X_train = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
-    X_test = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
+    # print(HEIGHT, WIDTH, CHANNEL)
 
-    embedding = AlexNet(X_train, DROP_PROB, CLASSES, [])
+    print(train_image.shape)
+    _, _, HEIGHT, WIDTH, CHANNEL = train_image.shape
 
-    y_train = tf.placeholder(tf.int64, [None])
-    y_one_hot = tf.one_hot(y, depth = CLASSES)
+    X_base = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
+    X_pos = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
+    X_neg = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
 
-    X_emb = embedding.fc7
+    with tf.variable_scope("PAIR", reuse=tf.AUTO_REUSE):
+        X_base_embedding = AlexNet(X_base, DROP_PROB, CLASSES, []).output
+        X_pos_embedding = AlexNet(X_pos, DROP_PROB, CLASSES, []).output
+        X_neg_embedding = AlexNet(X_neg, DROP_PROB, CLASSES, []).output
+
+    print(X_base_embedding.shape)
+
+    y_pos = tf.losses.cosine_distance(X_base_embedding, X_pos_embedding, axis=1)
+    y_neg = tf.losses.cosine_distance(X_base_embedding, X_neg_embedding, axis=1)
+
+    loss = 1 - y_pos + y_neg
+
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss, var_list=tf.trainable_variables())
+
+    # y_one_hot = tf.one_hot(y, depth = CLASSES)
+
+    # X_emb = embedding.fc7
 
 
 

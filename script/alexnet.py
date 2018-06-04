@@ -57,14 +57,14 @@ class AlexNet(object):
         # 6th Layer: Flatten -> FC (w ReLu) -> Dropout
         flattened = tf.reshape(pool5, [-1, 6*6*256])
         fc6 = fc(flattened, 6*6*256, 4096, name='fc6')
-        dropout6 = dropout(fc6, self.KEEP_PROB)
+        self.output = dropout(fc6, self.KEEP_PROB)
 
-        # 7th Layer: FC (w ReLu) -> Dropout
-        self.fc7 = fc(dropout6, 4096, 4096, name='fc7')
-        dropout7 = dropout(self.fc7, self.KEEP_PROB)
+        # # 7th Layer: FC (w ReLu) -> Dropout
+        # self.fc7 = fc(dropout6, 4096, 4096, name='fc7')
+        # dropout7 = dropout(self.fc7, self.KEEP_PROB)
 
-        # 8th Layer: FC and return unscaled activations
-        self.fc8 = fc(dropout7, 4096, self.NUM_CLASSES, relu=False, name='fc8')
+        # # 8th Layer: FC and return unscaled activations
+        # self.fc8 = fc(dropout7, 4096, self.NUM_CLASSES, relu=False, name='fc8')
 
     def load_initial_weights(self, session):
         """Load weights from file into network.
@@ -135,8 +135,10 @@ def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
         # Concat the convolved output together again
         conv = tf.concat(axis=3, values=output_groups)
 
+    # print(conv.shape)
     # Add biases
-    bias = tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape().as_list())
+    # bias = tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape().as_list())
+    bias = tf.nn.bias_add(conv, biases)
 
     # Apply relu function
     relu = tf.nn.relu(bias, name=scope.name)
