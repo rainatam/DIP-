@@ -2,6 +2,7 @@ import numpy as np
 import os
 import re
 import tensorflow as tf
+import random
 
 DATA_DIR = "../training"
 
@@ -54,6 +55,11 @@ with tf.Session() as sess:
     base = np.array(base)
     pos = np.array(pos)
     neg = np.array(neg)
+
+    data = list(zip(base, zip(pos, neg)))
+    random.shuffle(data)
+    base[:], pos_neg = zip(*data)
+    pos[:], neg[:] = zip(*pos_neg)
 
     train_image = np.array(train_image)
 

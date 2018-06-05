@@ -1,70 +1,24 @@
-import os
-import re
-from PIL import Image
 import numpy as np
 import tensorflow as tf
-import os
-# import alexnet
-from alexnet import *
-# import AlexNet
-# import glob
-# import matplotlib.pyplot as plt
 
-EPOCH = 100
-EPISODE = 100
-WAY = 50
-SHOT = 10
-DROP_PROB = 0.5
-CLASSES  = 50
-# QUERY = 
-# SAMPLE = 
+from alexnet import AlexNet
 
-def gen_batch(base, pos, neg, data):
+def cosine_distance(x1, x2):
+    x1_norm = tf.sqrt(tf.reduce_sum(tf.square(x1), axis=1))
+    x2_norm = tf.sqrt(tf.reduce_sum(tf.square(x2), axis=1))
+    
+    x1_x2 = tf.reduce_sum(tf.multiply(x1, x2), axis=1)
 
-    return x_base, x_pos, x_neg
+    # cosin = x1_x2 / (x1_norm * x2_norm)
+    cosin = tf.divide(x1_x2, tf.multiply(x1_norm, x2_norm))
+    return cosin
 
-with tf.Session() as sess:
-    learning_rate = 0.01
+class Distinguisher:
+    def __init__(self, base, inf, sess, reuse=False):
+        DROP_PROB = 0.5
+        CLASSES = 50
 
-    train_image = np.load('train_image.npy')
-    base = np.load('base.npy')
-    pos = np.load('pos.npy')
-    neg = np.load('neg.npy')
+        base_embedding = AlexNet(base, DROP_PROB, CLASSES, ['fc7', 'fc8'], sess, reuse=reuse).output
+        inf_embedding = AlexNet(inf, DROP_PROB, CLASSES, ['fc7', 'fc8'], sess, reuse=True).output
 
-    # print(HEIGHT, WIDTH, CHANNEL)
-
-    print(train_image.shape)
-    _, _, HEIGHT, WIDTH, CHANNEL = train_image.shape
-
-    X_base = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
-    X_pos = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
-    X_neg = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
-
-    with tf.variable_scope("PAIR", reuse=tf.AUTO_REUSE):
-        X_base_embedding = AlexNet(X_base, DROP_PROB, CLASSES, []).output
-        X_pos_embedding = AlexNet(X_pos, DROP_PROB, CLASSES, []).output
-        X_neg_embedding = AlexNet(X_neg, DROP_PROB, CLASSES, []).output
-
-    print(X_base_embedding.shape)
-
-    y_pos = tf.losses.cosine_distance(X_base_embedding, X_pos_embedding, axis=1)
-    y_neg = tf.losses.cosine_distance(X_base_embedding, X_neg_embedding, axis=1)
-
-    loss = 1 - y_pos + y_neg
-
-    train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss, var_list=tf.trainable_variables())
-
-    # y_one_hot = tf.one_hot(y, depth = CLASSES)
-
-    # X_emb = embedding.fc7
-
-
-
-
-
-
-
-
-# for i in range(EPOCH):
-# 	for epi in range(EPISODE):
-# 		epi_classes = np.random.permutation(ss)
+        self.sim = cosine_distance(base_embedding, inf_embedding)
