@@ -27,16 +27,16 @@ data = None
  
 # saver = tf.train.Saver()
 
-def train(sess, train_op, acc_op, y_pos, y_neg):
+def train(sess, model, train_op, acc_op, loss_op, train_dir):
     assert(len(base) == len(pos))
     assert(len(base) == len(neg))
     length = len(base)
 
     st, ed, times = 0, BATCH_SIZE, 0
     iter = 0
+    sum_acc = 0
+    sum_loss = 0
     while st < length and ed <= length:
-        print(iter)
-        iter += 1
         a_base = []
         a_pos = []
         a_neg = []
@@ -47,14 +47,31 @@ def train(sess, train_op, acc_op, y_pos, y_neg):
         
         feed = {X_base: a_base, X_pos: a_pos, X_neg: a_neg}
 
-        _, acc, _pos, _neg = sess.run([train_op, acc_op, y_pos, y_neg], feed_dict=feed)
+        _, acc, loss = sess.run([train_op, acc_op, loss_op], feed_dict=feed)
+
+        sum_acc += acc
+        sum_loss += loss
+
+        iter += 1
+
+        if iter % 10 == 0:
+            print("iter: %d acc: %f loss: %f" % (iter, sum_acc/10, sum_loss/10))
+            sum_acc = 0
+            sum_loss = 0
+
         
-        print("ACC: ", acc)
+
+        model.saver.save(sess, '%s/model' % train_dir)
+
         # print(_pos)
         # print(_neg)
 
         st, ed = ed, ed + BATCH_SIZE
         times += 1
+        
+        
+FLAGS = tf.app.flags.FLAGS
+tf.app.flags.DEFINE_string("train_dir", "./train", "Training directory.")
 
 with tf.Session() as sess:
 
@@ -74,24 +91,32 @@ with tf.Session() as sess:
     X_pos = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
     X_neg = tf.placeholder(tf.float32, [None, HEIGHT, WIDTH, CHANNEL])
     
-    y_pos = Distinguisher(X_base, X_pos, sess).sim
+    # y_pos = Distinguisher(X_base, X_pos, sess).sim
+    model = Distinguisher(X_base, X_pos, sess)
+    y_pos = model.sim
     y_neg = Distinguisher(X_base, X_neg, sess, True).sim
     
     acc_op = tf.reduce_mean(tf.cast(tf.greater(y_pos, y_neg), tf.float32))
 
     loss = 1 - y_pos + y_neg
+    
+    loss_op = tf.reduce_mean(loss)
+
+    if tf.train.get_checkpoint_state(FLAGS.train_dir):
+        print("Reading model parameters from %s" % FLAGS.train_dir)
+        model.saver.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
+    else:
+        print("Created model with fresh parameters.")
         
     prev = set(tf.global_variables()) 
-
     train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss, var_list=tf.trainable_variables())
-
     # tf.global_variables_initializer().run()
     tf.initialize_variables(list(set(tf.global_variables()) - prev)).run()
     # sess.run(init_new_vars_op)
     
     # print(list(set(tf.global_variables()) - prev))
     
-    train(sess, train_op, acc_op, y_pos, y_neg)
+    train(sess, model, train_op, acc_op, loss_op, FLAGS.train_dir)
 
     # save_path = saver.save(sess, '/train_image.npy')
 

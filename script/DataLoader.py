@@ -19,7 +19,10 @@ def load_image(path):
     VGG_MEAN = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32)
     # load and preprocess the image
     img_string = tf.read_file(path)
-    img_decoded = tf.image.decode_png(img_string, channels=3)
+    if path[-3:] == 'png':
+        img_decoded = tf.image.decode_png(img_string, channels=3)
+    else:
+        img_decoded = tf.image.decode_jpeg(img_string, channels=3)
     img_resized = tf.image.resize_images(img_decoded, [227, 227])
     img_centered = tf.subtract(img_resized, VGG_MEAN)
     img_bgr = img_centered[:, :, ::-1]
@@ -37,7 +40,6 @@ def load_data(path):
             
 def gen_pair():
     for i in range(1, 51):
-        print(i)
         for j in range(0, 10):
             for k in range(0, 10):
                 if j != k:
@@ -48,22 +50,23 @@ def gen_pair():
                                 pos.append([i - 1, k])
                                 neg.append([l - 1, m])
 
-with tf.Session() as sess:                   
-    load_data(DATA_DIR)
-    gen_pair()
+if __name__ == "__main__":
+    with tf.Session() as sess:                   
+        load_data(DATA_DIR)
+        gen_pair()
 
-    base = np.array(base)
-    pos = np.array(pos)
-    neg = np.array(neg)
+        base = np.array(base)
+        pos = np.array(pos)
+        neg = np.array(neg)
 
-    data = list(zip(base, zip(pos, neg)))
-    random.shuffle(data)
-    base[:], pos_neg = zip(*data)
-    pos[:], neg[:] = zip(*pos_neg)
+        data = list(zip(base, zip(pos, neg)))
+        random.shuffle(data)
+        base[:], pos_neg = zip(*data)
+        pos[:], neg[:] = zip(*pos_neg)
 
-    train_image = np.array(train_image)
+        train_image = np.array(train_image)
 
-    np.save("base.npy", base)
-    np.save("pos.npy", pos)
-    np.save("neg.npy", neg)
-    np.save("train_image.npy", train_image)
+        np.save("base.npy", base)
+        np.save("pos.npy", pos)
+        np.save("neg.npy", neg)
+        np.save("train_image.npy", train_image)

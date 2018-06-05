@@ -22,3 +22,5 @@ class Distinguisher:
         inf_embedding = AlexNet(inf, DROP_PROB, CLASSES, ['fc7', 'fc8'], sess, reuse=True).output
 
         self.sim = cosine_distance(base_embedding, inf_embedding)
+        
+        self.saver = tf.train.Saver()
