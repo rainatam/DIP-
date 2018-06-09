@@ -55,15 +55,16 @@ class AlexNet(object):
         # 5th Layer: Conv (w ReLu) -> Pool splitted into two groups
         conv5 = conv(conv4, 3, 3, 256, 1, 1, groups=2, name='conv5', reuse=self.reuse)
         pool5 = max_pool(conv5, 3, 3, 2, 2, padding='VALID', name='pool5')
-
+        self.output = pool5
         # 6th Layer: Flatten -> FC (w ReLu) -> Dropout
         flattened = tf.reshape(pool5, [-1, 6*6*256])
         fc6 = fc(flattened, 6*6*256, 4096, name='fc6', reuse=self.reuse)
-        self.output = dropout(fc6, self.KEEP_PROB)
+        dropout6 = dropout(fc6, self.KEEP_PROB)
 
         # # 7th Layer: FC (w ReLu) -> Dropout
-        # self.fc7 = fc(dropout6, 4096, 4096, name='fc7')
-        # dropout7 = dropout(self.fc7, self.KEEP_PROB)
+        self.fc7 = fc(dropout6, 4096, 4096, name='fc7', reuse=self.reuse)
+        dropout7 = dropout(self.fc7, self.KEEP_PROB)
+        tf.output = tf.stop_gradient(dropout7)
 
         # # 8th Layer: FC and return unscaled activations
         # self.fc8 = fc(dropout7, 4096, self.NUM_CLASSES, relu=False, name='fc8')

@@ -16,7 +16,7 @@ WAY = 50
 SHOT = 10
 DROP_PROB = 0.5
 CLASSES = 50
-BATCH_SIZE = 32
+BATCH_SIZE = 8
 # QUERY = 
 # SAMPLE = 
 
@@ -27,7 +27,7 @@ data = None
  
 # saver = tf.train.Saver()
 
-def train(sess, model, train_op, acc_op, loss_op, train_dir):
+def train(sess, model, train_op, acc_op, loss_op, train_dir, y_pos, y_neg):
     assert(len(base) == len(pos))
     assert(len(base) == len(neg))
     length = len(base)
@@ -47,14 +47,16 @@ def train(sess, model, train_op, acc_op, loss_op, train_dir):
         
         feed = {X_base: a_base, X_pos: a_pos, X_neg: a_neg}
 
-        _, acc, loss = sess.run([train_op, acc_op, loss_op], feed_dict=feed)
+        _, acc, loss, b_pos, b_neg = sess.run([train_op, acc_op, loss_op, y_pos, y_neg], feed_dict=feed)
 
         sum_acc += acc
         sum_loss += loss
 
         iter += 1
-
+        
         if iter % 10 == 0:
+            print(b_pos)
+            print(b_neg)
             print("iter: %d acc: %f loss: %f" % (iter, sum_acc/10, sum_loss/10))
             sum_acc = 0
             sum_loss = 0
@@ -75,7 +77,7 @@ tf.app.flags.DEFINE_string("train_dir", "./train", "Training directory.")
 
 with tf.Session() as sess:
 
-    learning_rate = 0.00001
+    learning_rate = 0.001
 
     data = np.load('train_image.npy')
     base = np.load('base.npy')
@@ -109,14 +111,14 @@ with tf.Session() as sess:
         print("Created model with fresh parameters.")
         
     prev = set(tf.global_variables()) 
-    train_op = tf.train.AdamOptimizer(learning_rate).minimize(loss, var_list=tf.trainable_variables())
+    train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss, var_list=tf.trainable_variables())
     # tf.global_variables_initializer().run()
     tf.initialize_variables(list(set(tf.global_variables()) - prev)).run()
     # sess.run(init_new_vars_op)
-    
+    print(tf.global_variables())
     # print(list(set(tf.global_variables()) - prev))
     
-    train(sess, model, train_op, acc_op, loss_op, FLAGS.train_dir)
+    train(sess, model, train_op, acc_op, loss_op, FLAGS.train_dir, y_pos, y_neg)
 
     # save_path = saver.save(sess, '/train_image.npy')
 

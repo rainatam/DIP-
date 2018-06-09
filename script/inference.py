@@ -9,17 +9,17 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("train_dir", "./train", "Training directory.")
 
-def inf_data(sess, model, path, train_dir):  
+def inf_data(sess, data, model, path, train_dir):  
     for file in os.listdir(path):  
         tmp_path = os.path.join(path, file)  
         if not os.path.isdir(tmp_path):  
             # string = re.match(r'.*0([0-9]+)_0*([0-9]+)\.jpg', file)
             # label = string.group(1)
-            print(tmp_path, inf_image(sess, model, tmp_path, train_dir))
+            print(tmp_path, inf_image(sess, data, model, tmp_path, train_dir))
         else:  
-            inf_data(sess, model, tmp_path, train_dir) 
+            inf_data(sess, data, model, tmp_path, train_dir) 
 
-def inf_image(sess, model, pic_path, train_dir):
+def inf_image(sess, data, model, pic_path, train_dir):
     sim = model.sim
 
     inf = load_image(pic_path) # 227 * 227 * 3
@@ -34,10 +34,10 @@ def inf_image(sess, model, pic_path, train_dir):
         # print(res[0])
         # print(np.asarray(res).shape)
         score[i] = np.sum(res[0])
-            
+    print(score) 
     return np.argmax(score) + 1
 
-test_path = '../testing'
+test_path = '../val'
 with tf.Session() as sess:
     data = np.load('train_image.npy')
 
@@ -51,7 +51,7 @@ with tf.Session() as sess:
 
     model.saver.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
 
-    inf_data(sess, model, test_path, FLAGS.train_dir)
+    inf_data(sess, data, model, test_path, FLAGS.train_dir)
 
 
 
